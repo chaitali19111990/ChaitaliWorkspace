@@ -1,4 +1,4 @@
-from InputData import captureData
+from chait import captureData
 from flask import Flask,render_template,request
 app = Flask(__name__)
 
@@ -10,13 +10,17 @@ app = Flask(__name__)
 #d2={}
 #d2=captureData.add_questions()
 
-d={}
 holdList=[]
 answerList=[]
-for i in range(2):
-    d = captureData.add_questions()
-    answerList.append(d['Answer'])
-    holdList.append(d)
+
+def capture_answerlist_holdlist():
+    d={}
+    for i in range(2):
+        #d = captureData.add_questions()
+        classobject = captureData.Capture()
+        d = classobject.add_questions()
+        answerList.append(d['Answer'])
+        holdList.append(d)
 
 @app.route('/')
 def hello():
@@ -33,12 +37,10 @@ def getquiz():
     return render_template('quiz.html',containerList=holdList)
 
 @app.route('/result',methods=['POST'])
-def getInput():
+def getinput():
     counter=0
     first=request.form['0']
     second=request.form['1']
-    print(first)
-    print(answerList[0])
     if answerList[0]==first:
         counter=counter+1
     if answerList[1]==second:
@@ -49,4 +51,5 @@ def getInput():
 
 
 if __name__ == "__main__":
+    capture_answerlist_holdlist()
     app.run()

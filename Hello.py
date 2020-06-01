@@ -1,31 +1,58 @@
-from chait import captureData
+import sys
+import pandas as pd 
+from ast import literal_eval
+from InputData import captureData
 from flask import Flask,render_template,request
 app = Flask(__name__)
 
-#holdList will hold all captured data
-holdList=[] 
 #answerList will hold list of correct answers
 answerList=[]
 
-def capture_answerlist_holdlist():
+class InputData():
     d={}
-    #for i in range(2):
-    #    classobject = captureData.Capture()
-    #    d = classobject.add_questions()
-    #    answerList.append(d['Answer'])
-    #    holdList.append(d)
-    add_more_ques=input('would you like to add more questions:')
+    def __init__(self):
+        self.classobject = captureData.Capture()
+
+    #Function to accept defult data
+    def no_choice(self):        
+        try:
+            dd = pd.read_csv("defaultData.csv",converters={"Options": literal_eval})
+            for i in range(len(dd)):
+                d = self.classobject.def_func(i,dd)
+                answerList.append(d['Answer'])
+                yield d
+        except FileNotFoundError:
+                print('defaultData.csv file not found at location..')
+                sys.exit(0)
+    
+    #Function to accept user provided data
+    def yes_choice(self):
+        while True:
+            try:    
+                number_of_ques=int(input('Enter total number of questions:'))
+                if number_of_ques <= 0:
+                    raise ValueError
+                    break
+                for i in range (number_of_ques):
+                    d = self.classobject.add_questions()
+                    answerList.append(d['Answer'])
+                    yield d
+                break
+            except ValueError:
+                print('Please enter valid number!')
+                continue        
+
+def capture_answerlist_holdlist():
+    ip = InputData()
+    add_more_ques=input('Would you like to add your own questions:')   
     if add_more_ques=='N':
-        d ={'Question':'Emerson innovation center located in:','Options':['Mumbai','Pune','Chennai'],'Answer':'Pune'}
-        answerList.append(d['Answer'])
-        holdList.append(d)
-    else:    
-        number_of_ques=int(input('Enter total number of questions:'))
-        for i in range (number_of_ques):
-            classobject = captureData.Capture()
-            d = classobject.add_questions()
-            answerList.append(d['Answer'])
-            holdList.append(d)
+        holdList = [i for i in ip.no_choice()]                 
+    elif add_more_ques == 'Y':
+        holdList = [i for i in ip.yes_choice()]
+    else:
+        print('Please enter Y/N...')
+        holdList = capture_answerlist_holdlist()
+    return holdList
 
 @app.route('/')
 def hello():
@@ -38,29 +65,19 @@ def getvalue():
 
 @app.route('/quiz')
 def getquiz():
-    #return render_template('quiz.html',DictQuestion1=d1['Question'],DictOptions1=d1['Options'],DictQuestion2=d2['Question'],DictOptions2=d2['Options'])
     return render_template('quiz.html',containerList=holdList)
 
 @app.route('/result',methods=['POST'])
 def getinput():
-    counter=0
     #responselist is list of captured responses from user
     responselist=[]
-    #first=request.form['0']
-    #second=request.form['1']
-    #if answerList[0]==first:
-    #    counter=counter+1
-    #if answerList[1]==second:
-     #   counter=counter+1
-    #return render_template('result.html',s=counter)
     for i in range(len(answerList)):
         response=request.form[str(i)]
-        responselist.append(response)
-    for i in range(len(responselist)):
-        if answerList[i]==responselist[i]:
-            counter=counter+1
-    return render_template('result.html',s=counter)
+        responselist.append(response)    
+
+    counter = [True for a,b in zip(answerList,responselist)if a==b]
+    return render_template('result.html',s=len(counter))
 
 if __name__ == "__main__":
-    capture_answerlist_holdlist()
+    holdList = capture_answerlist_holdlist()
     app.run()
